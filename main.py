@@ -4,7 +4,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import logging
-import asyncio
 import chess
 import chess.engine
 
@@ -41,6 +40,4 @@ async def post_make_move(fen: FEN):
 
 @app.get("/", response_class=HTMLResponse)
 async def get_home_page(request: Request):
-    return templates.TemplateResponse(
-        request=request, name="index.html"
-    )
+    return templates.TemplateResponse(request=request, name="index.html")
