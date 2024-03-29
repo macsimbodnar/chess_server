@@ -25,7 +25,7 @@ def log(log: str):
 
 
 engine = chess.engine.SimpleEngine.popen_uci(
-    "/home/max/Downloads/Software/stockfish-ubuntu-x86-64-avx2/stockfish/stockfish-ubuntu-x86-64-avx2")
+    "/home/max/Downloads/stockfish/stockfish-ubuntu-x86-64-avx2")
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
