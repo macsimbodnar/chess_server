@@ -8,8 +8,12 @@ import chess
 import chess.engine
 
 
-class FEN(BaseModel):
+class MoveInput(BaseModel):
     fen: str
+
+
+class MoveResult(MoveInput):
+    best_move: str
 
 
 log_instance = logging.getLogger("fastapi")
@@ -28,13 +32,13 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
-@app.post("/make_move", response_model=FEN)
-async def post_make_move(fen: FEN):
-    board = chess.Board(fen.fen)
+@app.post("/make_move", response_model=MoveResult)
+async def post_make_move(board_status: MoveInput):
+    board = chess.Board(board_status.fen)
     move = engine.play(board, chess.engine.Limit(time=0.1))
     board.push(move.move)
 
-    result = FEN(fen=board.fen())
+    result = MoveResult(fen=board.fen(), best_move=str(move.move))
     return result
 
 
