@@ -20,25 +20,105 @@
           <div class="card-body">
             <div class="row">
               <div class="col">
+                <!-- Board -->
                 <div id="myBoard" class="mx-auto mb-2" style="width: 400px"></div>
 
-                <div class="row mx-auto mt-2 mb-2" style="width: 400px">
+                <div class="mx-auto mt-2 mb-2" style="width: 400px">
+
+                  <!-- Current turn color -->
+                  <strong class="mx-auto mb-2">
+                    <div class="text-center mb-2" id="status"></div>
+                  </strong>
+
+                  <!-- FEN -->
+                  <div class="input-group mb-3">
+                    <input id="fen" type="text" class="form-control" />
+                    <div class="input-group-append">
+                      <button id="set_fen" class="btn btn-outline-success">Set FEN</button>
+                    </div>
+                  </div>
+
+                  <!-- Strength controls -->
+                  <div class="input-group mb-3">
+                    <select id="move_time" class="form-control mr-2">
+                      <option value="0">N/A</option>
+                      <option value="1" selected>1 sec</option>
+                      <option value="2">2 sec</option>
+                      <option value="3">3 sec</option>
+                      <option value="4">4 sec</option>
+                      <option value="5">5 sec</option>
+                      <option value="6">6 sec</option>
+                      <option value="7">7 sec</option>
+                      <option value="8">8 sec</option>
+                      <option value="9">9 sec</option>
+                      <option value="10">10 sec</option>
+                      <option value="11">11 sec</option>
+                      <option value="12">12 sec</option>
+                    </select>
+                    <select id="fixed_depth" class="form-control ml-2">
+                      <option value="0">N/A</option>
+                      <option value="1">1 ply</option>
+                      <option value="2">2 ply</option>
+                      <option value="3">3 ply</option>
+                      <option value="4">4 ply</option>
+                      <option value="5">5 ply</option>
+                      <option value="6">6 ply</option>
+                      <option value="7">7 ply</option>
+                      <option value="8">8 ply</option>
+                      <option value="9">9 ply</option>
+                      <option value="10">10 ply</option>
+                      <option value="11">11 ply</option>
+                      <option value="12">12 ply</option>
+                    </select>
+                  </div>
+
+                  <!-- Buttons -->
                   <div class="btn-group">
                     <button id="new_game" class="btn btn-outline-secondary">New Game</button>
                     <button id="make_move" class="btn btn-outline-secondary">Make Move</button>
                     <button id="take_back" class="btn btn-outline-secondary">Take Back</button>
                     <button id="flip_board" class="btn btn-outline-secondary">Flip Board</button>
                   </div>
+
                 </div>
+
               </div>
+
               <div class="col">
-                <strong>Status:</strong>
-                <div id="status"></div>
-                <div class="mt-2"><strong>FEN:</strong></div>
-                <div id="fen"></div>
+                <!-- Game info -->
+                <table class="table text-center">
+                  <thead>
+                    <tr>
+                      <th>W Score</th>
+                      <th>B Score</th>
+                      <th>Depth</th>
+                      <th>Time</th>
+                      <th>Nodes</th>
+                      <th>Knps</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong id="w-score" class="text-danger">00</strong></td>
+                      <td><strong id="b-score" class="text-danger">00</strong></td>
+                      <th id="depth">00</th>
+                      <td id="time">0.000</td>
+                      <td id="nodes">0000000</td>
+                      <td id="knps">0000.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <!-- PGN -->
                 <div class="mt-2"><strong>PGN:</strong></div>
                 <div id="pgn"></div>
+
+                <!-- Download button -->
+                <button id="download_button" class="btn btn-success mt-2">Download</button>
+
+                <a id="download_link" href="" download="" hidden></a>
               </div>
+
             </div>
           </div>
         </div>
@@ -61,11 +141,21 @@
   var $status = $('#status')
   var $fen = $('#fen')
   var $pgn = $('#pgn')
+  var $wscore = $('#w-score')
+  var $bscore = $('#b-score')
+  var $time = $('#time')
+  var $nodes = $('#nodes')
+  var $knps = $('#knps')
+  var $depth = $('#depth')
 
 
   function make_computer_move() {
 
-    var jsonData = { "fen": game.fen() };
+    var jsonData = {
+      "fen": game.fen(),
+      "depth": $('#fixed_depth option:selected').val(),
+      "time": $('#move_time option:selected').val()
+    };
 
     $.ajax({
       url: '/make_move',
@@ -73,10 +163,18 @@
       contentType: 'application/json',
       data: JSON.stringify(jsonData),
       success: function (response) {
-        // console.log(response)
+        console.log(response)
         game.move(response.best_move, { sloppy: true })
         board.position(game.fen())
+
         updateStatus()
+        $wscore.text(response.w_score)
+        $bscore.text(response.b_score)
+        $depth.text(response.depth)
+        $time.text(response.time)
+        $nodes.text(response.nodes)
+        $knps.text((response.nodes / response.time / 1000).toFixed(2))
+
       },
       error: function (xhr, status, error) {
         console.error('Error sending POST request:', error);
@@ -114,6 +212,61 @@
   $('#flip_board').on('click', function () {
     // Reset board state
     board.flip()
+  })
+
+
+  $('#move_time').on('change', function () {
+    $('#fixed_depth').val('0')
+  })
+
+
+  $('#fixed_depth').on('change', function () {
+    $('#move_time').val('0')
+  })
+
+
+  $('#set_fen').on('click', function () {
+    var fen = $('#fen').val().trim()
+
+    if (game.load(fen) == false) {
+      alert('Illegal FEN')
+    }
+
+    board.position(game.fen())
+    updateStatus()
+  })
+
+
+  $('#download_button').on('click', function () {
+    var date = new Date()
+    var user_name = prompt('Your name...')
+    var pgn_header = ''
+    var user_color = ''
+
+    while (user_color != "White" && user_color != "Black") {
+      user_color = prompt('Your color... ')
+
+      if (user_color != "White" && user_color != "Black") {
+        alert('Use only "Black" or "White" for color input')
+      }
+    }
+
+    if (user_color == "White") {
+      pgn_header = '[White "' + user_name + '"]\n[Black "Stockfish"]\n\n'
+      $('#download_link').attr('download', user_name + '_vs_Stockfish_' + date.toString().replace(/\s/g, "_") + '.pgn')
+    } else if (user_color == "Black") {
+      pgn_header = '[White "Stockfish"]\n[Black "' + user_name + '"]\n\n'
+      $('#download_link').attr('download', 'Stockfish_vs_' + user_name + '_' + date.toString().replace(/\s/g, "_") + '.pgn')
+    } else {
+      alert("Wrong input")
+      return
+    }
+
+    $('#download_link').attr('href', window.URL.createObjectURL(
+      new Blob([pgn_header + game.pgn()], { type: 'text' })
+    ))
+
+    $('#download_link')[0].click()
   })
 
 
@@ -179,7 +332,7 @@
     }
 
     $status.html(status)
-    $fen.html(game.fen())
+    $fen.val(game.fen())
     $pgn.html(game.pgn())
   }
 
