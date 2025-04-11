@@ -1,4 +1,4 @@
-# Chess server
+# Chesso server
 
 ## Run in local
 

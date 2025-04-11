@@ -1,3 +1,164 @@
-h1 {
-  color: green;
+body {
+  background-color: #000;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.title {
+  font-family: 'Press Start 2P', cursive;
+  color: #ffffff;
+  text-align: center;
+  padding-top: 24px;
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.board-section {
+  gap: 32px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: 100%;
+  padding: 0 24px;
+}
+
+#board {
+  width: 90vmin;
+  height: 90vmin;
+  max-width: 90vw;
+  max-height: 90vh;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.info-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin-left: 16px;
+  height: 90vmin;
+  flex: 1; /* ✅ make it fill remaining space */
+  overflow: hidden;
+}
+
+.button-row {
+  gap: 6px;
+  padding-top: 12px;
+  padding-inline: 8px;
+  padding-bottom: 8px;
+  width: 100%;
+}
+
+.button-row .btn,
+#depth-select {
+  font-size: 0.75rem;
+  font-family: 'Press Start 2P', cursive;
+  white-space: nowrap;
+  padding: 8px;
+  text-align: center;
+  border: 1px solid white;
+  border-radius: 0;
+  background-color: black;
+  color: white;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  line-height: 1;
+}
+
+/* PGN Box */
+.pgn-box {
+  background-color: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 8px;
+  width: 100%;
+  max-height: 160px;
+  overflow-y: auto;
+  color: #ccc;
+  font-family: monospace;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-x: hidden;
+}
+
+#pgn {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Dropdown styling */
+#depth-select {
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  text-align-last: center;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 320 512'%3E%3Cpath d='M31.5 192h257c28.4 0 42.8 34.5 22.6 54.6l-128 128c-12.5 12.5-32.8 12.5-45.3 0l-128-128C-11.3 226.5 3.1 192 31.5 192z'/%3E%3C/svg%3E");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 12px;
+}
+
+#depth-select::-ms-expand {
+  display: none;
+}
+
+#depth-select:focus {
+  outline: none;
+  box-shadow: none;
+  background-color: black;
+  border: 1px solid white;
+}
+
+/* Firefox fix */
+@-moz-document url-prefix() {
+  #depth-select {
+    font-size: 0.75rem;
+    line-height: normal;
+    text-align: center;
+    text-align-last: center;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .board-section {
+    flex-direction: column;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0;
+  }
+
+  #board {
+    margin: 0 auto 12px auto;
+  }
+
+  .info-panel {
+    width: 90vmin;
+    height: 100%;
+    margin: 0 auto 24px auto;
+    max-width: 100%;
+  }
+
+  .button-row .btn,
+  #depth-select {
+    min-height: 48px;
+  }
+
+  .pgn-box {
+    max-height: 120px;
+  }
 }

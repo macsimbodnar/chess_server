@@ -32,7 +32,7 @@ def log(log: str):
 
 
 engine = chess.engine.SimpleEngine.popen_uci(
-    "/home/max/Downloads/Software/stockfish-ubuntu-x86-64-avx2/stockfish/stockfish-ubuntu-x86-64-avx2")
+    "/home/max/ws/chesso/build/src/chesso_engine")
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -41,6 +41,8 @@ templates = Jinja2Templates(directory="templates")
 
 @app.post("/make_move", response_model=MoveResult)
 async def post_make_move(board_status: MoveInput):
+
+    print(board_status)
 
     board = chess.Board(board_status.fen)
 
