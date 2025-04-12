@@ -2,3 +2,5 @@
 .no_git
 __pycache__
 chesso_engine.log
+certs/dhparam.pem
+html/.well-known/acme-challenge/25hZGs51p4tpkEtrH-7Kp04uChV_ndcZAz-MsHyXNRE

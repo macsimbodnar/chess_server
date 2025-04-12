@@ -1,0 +1,49 @@
+services:
+  chesso:
+    build: .
+    container_name: chesso_app
+    restart: always
+    expose:
+      - "8000"
+    environment:
+      - VIRTUAL_HOST=mazerfaker.com
+      - LETSENCRYPT_HOST=mazerfaker.com
+      - LETSENCRYPT_EMAIL=macsimbodnar@gmail.com
+    volumes:
+      - ./engine:/app/engine
+
+  nginx:
+    image: jwilder/nginx-proxy
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./certs:/etc/nginx/certs
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/custom.conf:ro
+    networks:
+      - web
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: nginx_certbot
+    restart: always
+    depends_on:
+      - nginx
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx_proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/etc/nginx/certs:rw
+      - ./vhost.d:/etc/nginx/vhost.d
+      - ./html:/usr/share/nginx/html
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge
