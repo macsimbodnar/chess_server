@@ -1,51 +1,27 @@
 services:
-  chesso:
-    build: .
-    container_name: chesso_app
-    restart: always
+  web:
+    build:
+       context: .
+    command: gunicorn main:app --bind 0.0.0.0:5000 -w 4 -k uvicorn.workers.UvicornWorker
     expose:
-      - "8000"
+      - 5000
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fastapi.rule=Host(`mazerfaker.com`)"
+      - "traefik.http.routers.fastapi.tls=true"
+      - "traefik.http.routers.fastapi.tls.certresolver=letsencrypt"
     environment:
-      - VIRTUAL_HOST=mazerfaker.com
-      - LETSENCRYPT_HOST=mazerfaker.com
-      - LETSENCRYPT_EMAIL=macsimbodnar@gmail.com
-    volumes:
-      - ./engine:/app/engine
-    networks:
-      - web
+      - TIMEOUT="600"
+      - GRACEFUL_TIMEOUT="600"
 
-  nginx:
-    image: jwilder/nginx-proxy
-    container_name: nginx_proxy
+  traefik:
+    image: traefik:v2.2
     restart: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./certs:/etc/nginx/certs
-      - ./vhost.d:/etc/nginx/vhost.d
-      - ./html:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/conf.d/custom.conf:ro
-    networks:
-      - web
-
-  letsencrypt:
-    image: jrcs/letsencrypt-nginx-proxy-companion
-    container_name: nginx_certbot
-    restart: always
-    depends_on:
-      - nginx
-    environment:
-      - NGINX_PROXY_CONTAINER=nginx_proxy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./certs:/etc/nginx/certs:rw
-      - ./vhost.d:/etc/nginx/vhost.d
-      - ./html:/usr/share/nginx/html
-    networks:
-      - web
-
-networks:
-  web:
-    driver: bridge
+      - "/etc/mazerfaker.com/letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik/traefik.prod.toml:/etc/traefik/traefik.toml"

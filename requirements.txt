@@ -1,3 +1,5 @@
 fastapi
 chess
-uvicorn[standard]
+gunicorn
+uvicorn
+Jinja2

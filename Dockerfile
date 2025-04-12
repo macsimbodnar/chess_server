@@ -1,16 +1,31 @@
-FROM python:3.11-slim
+FROM ubuntu:24.04
 
-WORKDIR /app
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHON_VERSION=3.12.2
+ENV WORKDIR=/usr/src/app
+ENV USER=app
+ENV APP_HOME=/home/app/web
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+WORKDIR $WORKDIR
 
-# Copy all files
-COPY . .
+# Install pip and adduser
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-pip \
+    adduser \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Make sure your engine is executable
-RUN chmod +x engine/chesso_engine
+# Install Python deps
+COPY ./requirements.txt $WORKDIR/requirements.txt
+RUN pip install --break-system-packages -r requirements.txt
 
-# Run FastAPI app
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Create app user
+RUN adduser --system --group $USER
+
+# Set up app directory
+RUN mkdir -p $APP_HOME
+WORKDIR $APP_HOME
+COPY . $APP_HOME
+RUN chown -R $USER:$USER $APP_HOME
+
+USER $USER
