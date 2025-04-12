@@ -11,6 +11,8 @@ services:
       - LETSENCRYPT_EMAIL=macsimbodnar@gmail.com
     volumes:
       - ./engine:/app/engine
+    networks:
+      - web
 
   nginx:
     image: jwilder/nginx-proxy
