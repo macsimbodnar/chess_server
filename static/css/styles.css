@@ -49,7 +49,6 @@ body {
   margin-left: 16px;
   height: 90vmin;
   flex: 1;
-  /* ✅ make it fill remaining space */
   overflow: hidden;
 }
 
@@ -134,43 +133,13 @@ body {
   }
 }
 
-/* Mobile */
-@media (max-width: 768px) {
-  .board-section {
-    flex-direction: column;
-    align-items: center;
-    flex-wrap: wrap;
-    padding: 0;
-  }
-
-  #board {
-    margin: 0 auto 12px auto;
-  }
-
-  .info-panel {
-    width: 90vmin;
-    height: 100%;
-    margin: 0 auto 24px auto;
-    max-width: 100%;
-  }
-
-  .button-row .btn,
-  #depth-select {
-    min-height: 48px;
-  }
-
-  .pgn-box {
-    max-height: 120px;
-  }
-}
-
+/* GitHub Links */
 .top-links {
   display: flex;
   gap: 16px;
-  position: absolute;
-  top: 16px;
-  right: 24px;
-  z-index: 10;
+  justify-content: center;
+  margin-top: 16px;
+  margin-bottom: 24px;
 }
 
 .top-link {
@@ -189,12 +158,43 @@ body {
   background-color: #333;
 }
 
-/* Responsive: move links under info panel on mobile */
+/* Mobile */
 @media (max-width: 768px) {
-  .top-links {
-    position: static;
-    justify-content: center;
-    margin: 16px auto 24px auto;
+  .board-section {
+    flex-direction: column;
+    align-items: center;
     flex-wrap: wrap;
+    padding: 0;
+  }
+
+  #board {
+    margin: 0 auto 12px auto;
+  }
+
+  .info-panel {
+    width: 90vmin;
+    height: auto;
+    margin: 0 auto 12px auto;
+    max-width: 100%;
+    padding: 12px;
+  }
+
+  .info-panel > .flex-grow-1 {
+    display: none;
+  }
+
+  .button-row .btn,
+  #depth-select {
+    min-height: 48px;
+  }
+
+  .pgn-box {
+    display: none;
+  }
+
+  .top-links {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 8px auto 24px auto;
   }
 }
