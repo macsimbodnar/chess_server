@@ -18,6 +18,7 @@ body {
 .wrapper {
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .board-section {
@@ -26,6 +27,7 @@ body {
   flex-wrap: nowrap;
   width: 100%;
   padding: 0 24px;
+  position: relative;
 }
 
 #board {
@@ -50,14 +52,48 @@ body {
   height: 90vmin;
   flex: 1;
   overflow: hidden;
+  position: relative;
+}
+
+.flex-grow-1 {
+  width: 100%;
+}
+
+/* Make GitHub links float at top-right in desktop */
+.top-links {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.top-link {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background-color: #111;
+  transition: background-color 0.2s ease;
+}
+
+.top-link:hover {
+  background-color: #333;
 }
 
 .button-row {
+  display: flex;
   gap: 6px;
   padding-top: 12px;
   padding-inline: 8px;
   padding-bottom: 8px;
   width: 100%;
+  flex-wrap: nowrap;
+  justify-content: center;
 }
 
 .button-row .btn,
@@ -72,9 +108,9 @@ body {
   background-color: black;
   color: white;
   box-sizing: border-box;
-  width: 100%;
   min-height: 48px;
   line-height: 1;
+  flex: 1;
 }
 
 /* PGN Box */
@@ -133,31 +169,6 @@ body {
   }
 }
 
-/* GitHub Links */
-.top-links {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  margin-top: 16px;
-  margin-bottom: 24px;
-}
-
-.top-link {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.6rem;
-  color: #fff;
-  text-decoration: none;
-  border: 1px solid #fff;
-  padding: 6px 10px;
-  border-radius: 4px;
-  background-color: #111;
-  transition: background-color 0.2s ease;
-}
-
-.top-link:hover {
-  background-color: #333;
-}
-
 /* Mobile */
 @media (max-width: 768px) {
   .board-section {
@@ -171,30 +182,42 @@ body {
     margin: 0 auto 12px auto;
   }
 
+  /* Show only button row on mobile */
   .info-panel {
     width: 90vmin;
-    height: auto;
-    margin: 0 auto 12px auto;
     max-width: 100%;
-    padding: 12px;
+    height: auto;
+    padding: 8px;
+    margin: 0 auto 12px auto;
+    border: none;
+    background: none;
   }
 
-  .info-panel > .flex-grow-1 {
-    display: none;
+  .info-panel > .flex-grow-1,
+  .pgn-box,
+  #status {
+    display: none !important;
+  }
+
+  .button-row {
+    width: 100%;
+    padding: 0;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 6px;
   }
 
   .button-row .btn,
   #depth-select {
-    min-height: 48px;
-  }
-
-  .pgn-box {
-    display: none;
+    flex: 1;
+    min-width: auto;
   }
 
   .top-links {
+    position: static;
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: center;
     margin: 8px auto 24px auto;
   }
 }
