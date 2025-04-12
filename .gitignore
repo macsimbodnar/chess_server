@@ -1,3 +1,4 @@
 .vscode
 .no_git
 __pycache__
+chesso_engine.log

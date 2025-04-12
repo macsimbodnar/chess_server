@@ -48,7 +48,8 @@ body {
   padding: 16px;
   margin-left: 16px;
   height: 90vmin;
-  flex: 1; /* ✅ make it fill remaining space */
+  flex: 1;
+  /* ✅ make it fill remaining space */
   overflow: hidden;
 }
 
@@ -160,5 +161,40 @@ body {
 
   .pgn-box {
     max-height: 120px;
+  }
+}
+
+.top-links {
+  display: flex;
+  gap: 16px;
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  z-index: 10;
+}
+
+.top-link {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background-color: #111;
+  transition: background-color 0.2s ease;
+}
+
+.top-link:hover {
+  background-color: #333;
+}
+
+/* Responsive: move links under info panel on mobile */
+@media (max-width: 768px) {
+  .top-links {
+    position: static;
+    justify-content: center;
+    margin: 16px auto 24px auto;
+    flex-wrap: wrap;
   }
 }
