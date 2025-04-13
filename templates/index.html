@@ -21,6 +21,7 @@
       <div class="info-panel d-flex flex-column justify-content-between align-items-center">
         <div class="flex-grow-1 d-flex flex-column justify-content-start align-items-start w-100 px-3 py-2">
           <div id="status" class="mb-2"></div>
+          <div id="fen" class="mb-2"></div>
           <div id="pgn-container" class="pgn-box w-100">
             <div id="pgn"></div>
           </div>
@@ -55,124 +56,167 @@
   <script src="https://unpkg.com/@chrisoakman/chessboard2@0.5.0/dist/chessboard2.min.js"
     integrity="sha384-/KwQCjA1GWovZNV3QDVtvSMDzO4reGgarF/RqHipr7hIUElH3r5zNl9WEPPOBRIF"
     crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.js"
+    integrity="sha384-8sJV/krC8iV2g7t0PolQxFVckDtxhfM5gNHNAFPG2ZS/bScudOjfsB8ewhG2xle8"
+    crossorigin="anonymous"></script>
 
   <script type="module">
-    import { Chess } from "/static/js/chess.js"
 
-    const is_touch_device = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    let board;
-    let game = new Chess();
-    let is_flipped = false;
-    let selected_depth = 4;
-
-    function updateStatus() {
-      let status = '';
-      let moveColor = game.turn() === 'w' ? 'White' : 'Black';
-
-      if (game.in_checkmate()) {
-        status = 'Game over, ' + moveColor + ' is in checkmate.';
-      } else if (game.in_draw()) {
-        status = 'Game over, drawn position.';
-      } else {
-        status = moveColor + ' to move';
-        if (game.in_check()) status += ', ' + moveColor + ' is in check';
-      }
-
-      $('#status').text(status);
-      $('#pgn').text(game.pgn());
-    }
-
-    function makeComputerMove() {
-      $.ajax({
-        url: '/make_move',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-          fen: game.fen(),
-          depth: selected_depth.toString(),
-          time: "0"
-        }),
-        success: function (response) {
-          game.move(response.best_move, { sloppy: true });
-          board.position(game.fen());
-          updateStatus();
-        },
-        error: function (xhr, status, error) {
-          console.error('Engine move error:', error);
-        }
-      });
-    }
-
-    function onDragStart(context) {
-      const piece = context.piece;
-      const source = context.square;
-
-      if (game.game_over()) return false;
-
-      if ((game.turn() === 'w' && piece.startsWith('b')) ||
-        (game.turn() === 'b' && piece.startsWith('w'))) {
-        return false;
-      }
-
-      // Only remove piece from board on desktop (avoid breaking mobile)
-      if (!is_touch_device) {
-        const newPosition = { ...board.position() };
-        delete newPosition[source];
-        board.position(newPosition);
-      }
-    }
-
-    function onDrop({ source, target, piece }) {
-      const move = game.move({ from: source, to: target, promotion: 'q' });
-
-      if (move === null) {
-        return 'snapback'; // invalid move → snap back
-      }
-
-      board.position(game.fen()); // manually update position
-      updateStatus();
-      setTimeout(makeComputerMove, 100);
-
-      return 'drop'; // prevent default animation
-    }
-
-    function onSnapEnd() {
-      board.position(game.fen());
-    }
 
     $(document).ready(function () {
-      board = Chessboard2('board', {
+
+      let selectedSquare = null;
+
+      const game = new Chess()
+
+      const boardConfig = {
         draggable: true,
-        position: 'start',
+        position: game.fen(),
         onDragStart: onDragStart,
         onDrop: onDrop,
         onSnapEnd: onSnapEnd
-      });
+      }
+
+      const board = Chessboard2('board', boardConfig)
+
+      const statusEl = byId('status')
+      const fenEl = byId('fen')
+      const pgnEl = byId('pgn')
+
+      updateStatus()
+
+      function onDragStart(dragStartEvt) {
+        // do not pick up pieces if the game is over
+        if (game.game_over()) return false
+
+        // only pick up pieces for the side to move
+        if (game.turn() === 'w' && !isWhitePiece(dragStartEvt.piece)) return false
+        if (game.turn() === 'b' && !isBlackPiece(dragStartEvt.piece)) return false
+
+        // what moves are available to from this square?
+        const legalMoves = game.moves({
+          square: dragStartEvt.square,
+          verbose: true
+        })
+
+        // place Circles on the possible target squares
+        legalMoves.forEach((move) => {
+          board.addCircle(move.to)
+        })
+      }
+
+      function isWhitePiece(piece) { return /^w/.test(piece) }
+      function isBlackPiece(piece) { return /^b/.test(piece) }
+
+      function onDrop(dropEvt) {
+        // see if the move is legal
+        const move = game.move({
+          from: dropEvt.source,
+          to: dropEvt.target,
+          promotion: 'q' // NOTE: always promote to a queen for example simplicity
+        })
+
+        // remove all Circles from the board
+        board.clearCircles()
+
+        // make the move if it is legal
+        if (move) {
+          // update the board position with the new game position, then update status DOM elements
+          board.fen(game.fen(), () => {
+            updateStatus()
+
+            // If the move is ok then make engine move after this one
+            make_engine_move();
+          })
+        } else {
+          return 'snapback'
+        }
+      }
+
+      // update the board position after the piece snap
+      // for castling, en passant, pawn promotion
+      function onSnapEnd() {
+        board.position(game.fen())
+      }
+
+      // update DOM elements with the current game status
+      function updateStatus() {
+        let statusHTML = ''
+        const whosTurn = game.turn() === 'w' ? 'White' : 'Black'
+
+        if (!game.game_over()) {
+          if (game.in_check()) statusHTML = whosTurn + ' is in check! '
+          statusHTML = statusHTML + whosTurn + ' to move.'
+        } else if (game.in_checkmate() && game.turn() === 'w') {
+          statusHTML = 'Game over: white is in checkmate. Black wins!'
+        } else if (game.in_checkmate() && game.turn() === 'b') {
+          statusHTML = 'Game over: black is in checkmate. White wins!'
+        } else if (game.in_stalemate() && game.turn() === 'w') {
+          statusHTML = 'Game is drawn. White is stalemated.'
+        } else if (game.in_stalemate() && game.turn() === 'b') {
+          statusHTML = 'Game is drawn. Black is stalemated.'
+        } else if (game.in_threefold_repetition()) {
+          statusHTML = 'Game is drawn by threefold repetition rule.'
+        } else if (game.insufficient_material()) {
+          statusHTML = 'Game is drawn by insufficient material.'
+        } else if (game.in_draw()) {
+          statusHTML = 'Game is drawn by fifty-move rule.'
+        }
+
+        statusEl.innerHTML = statusHTML
+        fenEl.innerHTML = game.fen()
+        pgnEl.innerHTML = game.pgn()
+      }
+
+      function byId(id) {
+        return document.getElementById(id)
+      }
+
+      function make_engine_move() {
+        let depth = byId('depth-select').value;
+
+        $.ajax({
+          url: '/make_move',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            fen: game.fen(),
+            depth: depth,
+            time: "0"
+          }),
+          success: function (response) {
+            game.move(response.best_move, { sloppy: true });
+            board.position(game.fen());
+            updateStatus();
+          },
+          error: function (xhr, status, error) {
+            console.error('Engine move error:', error);
+          }
+        });
+      }
 
       $('#flip-button').on('click', function () {
-        is_flipped = !is_flipped;
         board.flip();
       });
 
-      $('#depth-select').on('change', function () {
-        selected_depth = parseInt(this.value);
-      });
+      // $('#depth-select').on('change', function () {
+      //   selected_depth = parseInt(this.value);
+      // });
 
       $('#newgame-button').on('click', function () {
+        // Reset the game
         game.reset();
-        board.position('start');
+        board.position(game.fen());
         updateStatus();
       });
 
       $('#move-button').on('click', function () {
-        makeComputerMove();
+        make_engine_move();
       });
 
       $(window).on('resize', function () {
         board.resize();
       });
-
-      updateStatus();
     });
   </script>
 </body>

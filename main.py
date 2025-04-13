@@ -41,7 +41,7 @@ templates = Jinja2Templates(directory="templates")
 @app.post("/make_move", response_model=MoveResult)
 async def post_make_move(board_status: MoveInput):
 
-    print(board_status)
+    # log(board_status)
 
     board = chess.Board(board_status.fen)
 
