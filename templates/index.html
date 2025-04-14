@@ -3,222 +3,258 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Chesso</title>
   <link href="/static/img/chesspieces/wikipedia/bQ.png" rel="icon" type="image/x-icon" />
   <link href="static/css/bootstrap.min.css" rel="stylesheet" />
   <link href="static/css/styles.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboard2@0.5.0/dist/chessboard2.min.css"
-    integrity="sha384-47VeTDpmy4yT21gKPXQcLQYQZwlmz27gEH5NTrOmTk3G/SGvMyltclOW/Q8uE+sL" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/chessground@9.1.1/assets/chessground.base.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/chessground@9.1.1/assets/chessground.brown.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/chessground@9.1.1/assets/chessground.cburnett.css" rel="stylesheet">
 </head>
 
 <body>
-  <div class="wrapper d-flex flex-column min-vh-100">
+
+  <div id="main-container">
     <h1 class="title">Chesso</h1>
-    <div class="flex-fill d-flex justify-content-center align-items-center board-section flex-wrap">
-      <div id="board" class="chessboard"></div>
-      <div class="info-panel d-flex flex-column justify-content-between align-items-center">
-        <div class="flex-grow-1 d-flex flex-column justify-content-start align-items-start w-100 px-3 py-2">
-          <div id="status" class="mb-2"></div>
-          <div id="fen" class="mb-2"></div>
-          <div id="pgn-container" class="pgn-box w-100">
-            <div id="pgn"></div>
-          </div>
+
+    <div id="board-and-moves">
+      
+      <div id="board-container"></div>
+
+      <!-- INFO PANEL -->
+      <div id="move-list-panel">
+        <!-- MOVE LIST -->
+        <div id="move-list-wrapper">
+          <table id="move-list-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>White</th>
+                <th>Black</th>
+              </tr>
+            </thead>
+            <tbody id="move-list-body"></tbody>
+          </table>
         </div>
-        <div class="button-row d-flex w-100">
-          <button id="flip-button" class="btn btn-outline-light flex-fill">Flip</button>
-          <button id="newgame-button" class="btn btn-outline-light flex-fill">New</button>
-          <button id="move-button" class="btn btn-outline-light flex-fill">Move</button>
-          <select id="depth-select" class="btn depth-select flex-fill">
-            <option value="1">D1</option>
-            <option value="2">D2</option>
-            <option value="3">D3</option>
-            <option value="4" selected>D4</option>
-            <option value="5">D5</option>
-            <option value="6">D6</option>
-            <option value="7">D7</option>
-            <option value="8">D8</option>
-          </select>
+        <!-- Desktop Flip Button -->
+        <div id="move-panel-footer" class="d-none d-md-block">
+          <button id="flip-button" class="flip-btn">Flip Board</button>
         </div>
       </div>
     </div>
-    <div class="top-links">
-      <a href="https://github.com/macsimbodnar/chesso" class="top-link" id="engine-link" target="_blank"
-        rel="noopener noreferrer">Engine Github</a>
-      <a href="https://github.com/macsimbodnar/chess_server" class="top-link" id="web-link" target="_blank"
-        rel="noopener noreferrer">Server Github</a>
+
+    <!-- Mobile Flip Button (fixed at bottom) -->
+    <div id="mobile-flip-btn" class="d-block d-md-none fixed-bottom p-2" style="background-color: #1f1f1f;">
+      <button id="flip-button-mobile" class="btn btn-secondary btn-block flip-btn">Flip Board</button>
+    </div>
+
+  </div>
+  <!-- PROMOTION -->
+  <div id="promotion-overlay" class="hidden">
+    <div id="promotion-dialog">
+      <p>Choose promotion:</p>
+      <div class="promotion-options">
+        <button data-piece="q">♕</button>
+        <button data-piece="r">♖</button>
+        <button data-piece="b">♗</button>
+        <button data-piece="n">♘</button>
+      </div>
+    </div>
+  </div>
+  <!-- GAME OVER -->
+  <div id="gameover-overlay" class="hidden">
+    <div id="gameover-dialog">
+      <h2 id="gameover-message">White Wins</h2>
+      <button id="newgame-button">New Game</button>
     </div>
   </div>
 
   <script src="static/js/jquery-3.5.1.min.js"></script>
   <script src="static/js/bootstrap.min.js"></script>
-  <script src="https://unpkg.com/@chrisoakman/chessboard2@0.5.0/dist/chessboard2.min.js"
-    integrity="sha384-/KwQCjA1GWovZNV3QDVtvSMDzO4reGgarF/RqHipr7hIUElH3r5zNl9WEPPOBRIF"
-    crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.js"
     integrity="sha384-8sJV/krC8iV2g7t0PolQxFVckDtxhfM5gNHNAFPG2ZS/bScudOjfsB8ewhG2xle8"
     crossorigin="anonymous"></script>
-
   <script type="module">
+    import { Chessground } from 'https://cdn.jsdelivr.net/npm/chessground@9.1.1/dist/chessground.js';
 
+    document.addEventListener('DOMContentLoaded', () => {
+      const game = new Chess();
+      const boardElement = document.getElementById('board-container');
+      const overlay = document.getElementById('promotion-overlay');
+      let pendingPromotion = null;
+      let isFlipped = false;
 
-    $(document).ready(function () {
+      const ground = Chessground(boardElement, {
+        draggable: {
+          enabled: true,
+          showGhost: true
+        },
+        movable: {
+          free: false,
+          color: 'white',
+          dests: compute_dests(),
+          events: {
+            after: (orig, dest) => {
+              const moves = game.moves({ square: orig, verbose: true });
+              const move = moves.find(m => m.to === dest);
 
-      let selectedSquare = null;
+              if (move && move.promotion) {
+                pendingPromotion = { orig, dest };
+                overlay.classList.remove('hidden');
+              } else {
+                apply_move(orig, dest, 'q'); // normal move
+              }
+            }
+          }
+        },
+        highlight: {
+          lastMove: true,
+          check: true
+        },
+        animation: {
+          enabled: true,
+          duration: 300
+        },
+        fen: game.fen()
+      });
 
-      const game = new Chess()
-
-      const boardConfig = {
-        draggable: true,
-        position: game.fen(),
-        onDragStart: onDragStart,
-        onDrop: onDrop,
-        onSnapEnd: onSnapEnd
-      }
-
-      const board = Chessboard2('board', boardConfig)
-
-      const statusEl = byId('status')
-      const fenEl = byId('fen')
-      const pgnEl = byId('pgn')
-
-      updateStatus()
-
-      function onDragStart(dragStartEvt) {
-        // do not pick up pieces if the game is over
-        if (game.game_over()) return false
-
-        // only pick up pieces for the side to move
-        if (game.turn() === 'w' && !isWhitePiece(dragStartEvt.piece)) return false
-        if (game.turn() === 'b' && !isBlackPiece(dragStartEvt.piece)) return false
-
-        // what moves are available to from this square?
-        const legalMoves = game.moves({
-          square: dragStartEvt.square,
-          verbose: true
-        })
-
-        // place Circles on the possible target squares
-        legalMoves.forEach((move) => {
-          board.addCircle(move.to)
-        })
-      }
-
-      function isWhitePiece(piece) { return /^w/.test(piece) }
-      function isBlackPiece(piece) { return /^b/.test(piece) }
-
-      function onDrop(dropEvt) {
-        // see if the move is legal
-        const move = game.move({
-          from: dropEvt.source,
-          to: dropEvt.target,
-          promotion: 'q' // NOTE: always promote to a queen for example simplicity
-        })
-
-        // remove all Circles from the board
-        board.clearCircles()
-
-        // make the move if it is legal
-        if (move) {
-          // update the board position with the new game position, then update status DOM elements
-          board.fen(game.fen(), () => {
-            updateStatus()
-
-            // If the move is ok then make engine move after this one
-            make_engine_move();
-          })
-        } else {
-          return 'snapback'
-        }
-      }
-
-      // update the board position after the piece snap
-      // for castling, en passant, pawn promotion
-      function onSnapEnd() {
-        board.position(game.fen())
-      }
-
-      // update DOM elements with the current game status
-      function updateStatus() {
-        let statusHTML = ''
-        const whosTurn = game.turn() === 'w' ? 'White' : 'Black'
-
-        if (!game.game_over()) {
-          if (game.in_check()) statusHTML = whosTurn + ' is in check! '
-          statusHTML = statusHTML + whosTurn + ' to move.'
-        } else if (game.in_checkmate() && game.turn() === 'w') {
-          statusHTML = 'Game over: white is in checkmate. Black wins!'
-        } else if (game.in_checkmate() && game.turn() === 'b') {
-          statusHTML = 'Game over: black is in checkmate. White wins!'
-        } else if (game.in_stalemate() && game.turn() === 'w') {
-          statusHTML = 'Game is drawn. White is stalemated.'
-        } else if (game.in_stalemate() && game.turn() === 'b') {
-          statusHTML = 'Game is drawn. Black is stalemated.'
-        } else if (game.in_threefold_repetition()) {
-          statusHTML = 'Game is drawn by threefold repetition rule.'
-        } else if (game.insufficient_material()) {
-          statusHTML = 'Game is drawn by insufficient material.'
-        } else if (game.in_draw()) {
-          statusHTML = 'Game is drawn by fifty-move rule.'
-        }
-
-        statusEl.innerHTML = statusHTML
-        fenEl.innerHTML = game.fen()
-        pgnEl.innerHTML = game.pgn()
-      }
-
-      function byId(id) {
-        return document.getElementById(id)
-      }
-
-      function make_engine_move() {
-        let depth = byId('depth-select').value;
-
-        $.ajax({
-          url: '/make_move',
-          type: 'POST',
-          contentType: 'application/json',
-          data: JSON.stringify({
-            fen: game.fen(),
-            depth: depth,
-            time: "0"
-          }),
-          success: function (response) {
-            game.move(response.best_move, { sloppy: true });
-            board.position(game.fen());
-            updateStatus();
-          },
-          error: function (xhr, status, error) {
-            console.error('Engine move error:', error);
+      function compute_dests() {
+        const dests = new Map();
+        game.SQUARES.forEach(sq => {
+          const moves = game.moves({ square: sq, verbose: true });
+          if (moves.length) {
+            dests.set(sq, moves.map(m => m.to));
           }
         });
+        return dests;
       }
 
-      $('#flip-button').on('click', function () {
-        board.flip();
+      function apply_move(orig, dest, promotion) {
+        const move = game.move({ from: orig, to: dest, promotion });
+        if (move) {
+          ground.set({
+            fen: game.fen(),
+            movable: {
+              color: game.turn() === 'w' ? 'white' : 'black',
+              dests: compute_dests()
+            }
+          });
+
+          check_gameover(); // ✅ here
+          update_move_list();
+        }
+      }
+
+
+      document.querySelectorAll('.promotion-options button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (pendingPromotion) {
+            const piece = btn.dataset.piece;
+            apply_move(pendingPromotion.orig, pendingPromotion.dest, piece);
+            pendingPromotion = null;
+            overlay.classList.add('hidden');
+          }
+        });
       });
 
-      // $('#depth-select').on('change', function () {
-      //   selected_depth = parseInt(this.value);
-      // });
+      const gameoverOverlay = document.getElementById('gameover-overlay');
+      const gameoverMessage = document.getElementById('gameover-message');
+      const newgameButton = document.getElementById('newgame-button');
 
-      $('#newgame-button').on('click', function () {
-        // Reset the game
+      // Check if game is over and show overlay
+      function check_gameover() {
+        if (game.game_over()) {
+          const winner = game.in_draw() ? 'Draw' : (game.turn() === 'w' ? 'Black Wins' : 'White Wins');
+          gameoverMessage.textContent = winner;
+          gameoverOverlay.classList.remove('hidden');
+
+          ground.set({
+            movable: { color: null, dests: new Map() } // ⛔ disable interaction
+          });
+        }
+      }
+
+      // New game button resets everything
+      newgameButton.addEventListener('click', () => {
         game.reset();
-        board.position(game.fen());
-        updateStatus();
+        gameoverOverlay.classList.add('hidden');
+        document.getElementById('move-list-body').innerHTML = '';
+
+        ground.set({
+          fen: game.fen(),
+          turnColor: 'white',
+          draggable: {
+            enabled: true,
+            showGhost: true
+          },
+          movable: {
+            free: false,
+            color: 'white',
+            dests: compute_dests(),
+            events: {
+              after: (orig, dest) => {
+                const moves = game.moves({ square: orig, verbose: true });
+                const move = moves.find(m => m.to === dest);
+
+                if (move && move.promotion) {
+                  pendingPromotion = { orig, dest };
+                  overlay.classList.remove('hidden');
+                } else {
+                  apply_move(orig, dest, 'q');
+                }
+              }
+            }
+          },
+          highlight: {
+            lastMove: true,
+            check: true
+          },
+          animation: {
+            enabled: true,
+            duration: 300
+          }
+        });
       });
 
-      $('#move-button').on('click', function () {
-        make_engine_move();
+      function update_move_list() {
+        const moves = game.history();
+        const tbody = document.getElementById('move-list-body');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < moves.length; i += 2) {
+          const moveNumber = Math.floor(i / 2) + 1;
+          const whiteMove = moves[i] || '';
+          const blackMove = moves[i + 1] || '';
+          const row = document.createElement('tr');
+          row.innerHTML = `
+                            <td>${moveNumber}</td>
+                            <td>${whiteMove}</td>
+                            <td>${blackMove}</td>
+                          `;
+          tbody.appendChild(row);
+        }
+
+        // Auto scroll to bottom
+        tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight;
+      }
+
+
+      document.querySelectorAll('.flip-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          isFlipped = !isFlipped;
+          ground.set({ orientation: isFlipped ? 'black' : 'white' });
+        });
       });
 
-      $(window).on('resize', function () {
-        board.resize();
-      });
+
     });
+
+
   </script>
+
 </body>
+
 
 </html>
