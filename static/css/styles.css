@@ -184,6 +184,11 @@ body {
   white-space: nowrap;
 }
 
+.current-move {
+  background-color: rgba(135, 206, 235, 0.3);
+  border-radius: 4px;
+}
+
 #move-list-wrapper {
   flex: 1 1 auto;
   min-height: 0;
@@ -222,6 +227,50 @@ body {
 .flip-btn:hover {
   background-color: #444;
   transform: scale(1.05);
+}
+
+/* Control Buttons */
+.control-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.nav-btn {
+  background: #333;
+  color: #f5f5f5;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.65rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 2.5rem;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background-color: #444;
+  transform: scale(1.05);
+}
+
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#mobile-control-btns .control-buttons {
+  width: 100%;
+}
+
+#mobile-control-btns .nav-btn,
+#mobile-control-btns .flip-btn {
+  height: 2.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Captured pieces display */

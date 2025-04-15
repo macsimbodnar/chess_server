@@ -12,6 +12,7 @@
   <link href="https://cdn.jsdelivr.net/npm/chessground@9.1.1/assets/chessground.base.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/chessground@9.1.1/assets/chessground.brown.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/chessground@9.1.1/assets/chessground.cburnett.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
@@ -53,16 +54,24 @@
             <tbody id="move-list-body"></tbody>
           </table>
         </div>
-        <!-- Desktop Flip Button -->
+        <!-- Desktop Control Buttons -->
         <div id="move-panel-footer" class="d-none d-md-block">
-          <button id="flip-button" class="flip-btn">Flip Board</button>
+          <div class="control-buttons">
+            <button id="prev-move-button" class="nav-btn" disabled><i class="fas fa-chevron-left"></i></button>
+            <button id="flip-button" class="flip-btn"><i class="fas fa-retweet"></i></button>
+            <button id="next-move-button" class="nav-btn" disabled><i class="fas fa-chevron-right"></i></button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Mobile Flip Button (fixed at bottom) -->
-    <div id="mobile-flip-btn" class="d-block d-md-none fixed-bottom p-2" style="background-color: #1f1f1f;">
-      <button id="flip-button-mobile" class="btn btn-secondary btn-block flip-btn">Flip Board</button>
+    <!-- Mobile Control Buttons (fixed at bottom) -->
+    <div id="mobile-control-btns" class="d-block d-md-none fixed-bottom p-2" style="background-color: #1f1f1f;">
+      <div class="control-buttons">
+        <button id="prev-move-button-mobile" class="nav-btn" disabled><i class="fas fa-chevron-left"></i></button>
+        <button id="flip-button-mobile" class="flip-btn"><i class="fas fa-retweet"></i></button>
+        <button id="next-move-button-mobile" class="nav-btn" disabled><i class="fas fa-chevron-right"></i></button>
+      </div>
     </div>
 
   </div>
@@ -101,6 +110,11 @@
       let pendingPromotion = null;
       let isFlipped = false;
       let capturedPieces = { w: [], b: [] };
+      
+      // Current move tracking for history navigation
+      let currentMoveIndex = -1;
+      let gameMoves = [];
+      let boardStates = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']; // Starting position
       
       // Material values for calculating advantage
       const pieceValues = {
@@ -177,6 +191,11 @@
             updateCapturedPieces(move.captured, move.color === 'w' ? 'b' : 'w');
           }
           
+          // Save move for history navigation
+          gameMoves.push({ from: orig, to: dest, promotion: promotion });
+          boardStates.push(game.fen());
+          currentMoveIndex = boardStates.length - 1;
+          
           ground.set({
             fen: game.fen(),
             movable: {
@@ -185,6 +204,8 @@
             }
           });
 
+          // Update history navigation buttons
+          updateNavButtons();
           check_gameover();
           update_move_list();
           updateMaterialAdvantage();
@@ -299,6 +320,14 @@
         capturedPieces = { w: [], b: [] };
         displayCapturedPieces();
         updateMaterialAdvantage();
+        
+        // Reset move history
+        gameMoves = [];
+        boardStates = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']; 
+        currentMoveIndex = 0;
+        
+        // Reset navigation buttons
+        updateNavButtons();
 
         ground.set({
           fen: game.fen(),
@@ -346,10 +375,17 @@
           const whiteMove = moves[i] || '';
           const blackMove = moves[i + 1] || '';
           const row = document.createElement('tr');
+          
+          // Highlight the current move
+          const isCurrentRow = (i === currentMoveIndex || i + 1 === currentMoveIndex);
+          if (isCurrentRow) {
+            row.classList.add('current-move-row');
+          }
+          
           row.innerHTML = `
                             <td>${moveNumber}</td>
-                            <td>${whiteMove}</td>
-                            <td>${blackMove}</td>
+                            <td class="${i === currentMoveIndex ? 'current-move' : ''}">${whiteMove}</td>
+                            <td class="${i + 1 === currentMoveIndex ? 'current-move' : ''}">${blackMove}</td>
                           `;
           tbody.appendChild(row);
         }
@@ -358,6 +394,103 @@
         tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight;
       }
 
+      // Move history navigation functions
+      function goToPrevMove() {
+        if (currentMoveIndex > 0) {
+          currentMoveIndex--;
+          
+          // Create a new chess instance to view this position
+          const viewGame = new Chess();
+          viewGame.load(boardStates[currentMoveIndex]);
+          
+          // Update the board display only
+          ground.set({
+            fen: viewGame.fen(),
+            movable: { 
+              color: null, // Disable moves during history viewing
+              dests: new Map() 
+            }
+          });
+          
+          // Update move list highlighting
+          update_move_list_highlighting();
+          updateNavButtons();
+        }
+      }
+      
+      function goToNextMove() {
+        if (currentMoveIndex < boardStates.length - 1) {
+          currentMoveIndex++;
+          
+          // Create a new chess instance to view this position
+          const viewGame = new Chess();
+          viewGame.load(boardStates[currentMoveIndex]);
+          
+          // Update the board display only
+          ground.set({
+            fen: viewGame.fen(),
+            movable: { 
+              color: null, // Disable moves during history viewing
+              dests: new Map() 
+            }
+          });
+          
+          // If we're back at the current game state, re-enable moves
+          if (currentMoveIndex === boardStates.length - 1) {
+            ground.set({
+              movable: {
+                color: game.turn() === 'w' ? 'white' : 'black',
+                dests: compute_dests()
+              }
+            });
+          }
+          
+          // Update move list highlighting
+          update_move_list_highlighting();
+          updateNavButtons();
+        }
+      }
+      
+      function update_move_list_highlighting() {
+        // Remove all highlighting
+        const cells = document.querySelectorAll('#move-list-body td');
+        cells.forEach(cell => {
+          cell.classList.remove('current-move');
+        });
+        
+        // Add highlighting to current move
+        const moveIndex = currentMoveIndex;
+        const isWhiteMove = moveIndex % 2 === 0;
+        const rowIndex = Math.floor(moveIndex / 2);
+        
+        const rows = document.querySelectorAll('#move-list-body tr');
+        if (rows[rowIndex]) {
+          // +1 because first column is the move number
+          const cellIndex = isWhiteMove ? 1 : 2;
+          const cell = rows[rowIndex].cells[cellIndex];
+          if (cell) {
+            cell.classList.add('current-move');
+          }
+        }
+      }
+      
+      function updateNavButtons() {
+        // Update desktop buttons
+        document.getElementById('prev-move-button').disabled = currentMoveIndex <= 0;
+        document.getElementById('next-move-button').disabled = currentMoveIndex >= boardStates.length - 1;
+        
+        // Update mobile buttons
+        document.getElementById('prev-move-button-mobile').disabled = currentMoveIndex <= 0;
+        document.getElementById('next-move-button-mobile').disabled = currentMoveIndex >= boardStates.length - 1;
+      }
+      
+      // Attach event listeners for navigation buttons
+      document.getElementById('prev-move-button').addEventListener('click', goToPrevMove);
+      document.getElementById('next-move-button').addEventListener('click', goToNextMove);
+      document.getElementById('prev-move-button-mobile').addEventListener('click', goToPrevMove);
+      document.getElementById('next-move-button-mobile').addEventListener('click', goToNextMove);
+
+      // Flip board buttons
       document.querySelectorAll('.flip-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           isFlipped = !isFlipped;
@@ -368,6 +501,7 @@
       // Initialize displays
       displayCapturedPieces();
       updateMaterialAdvantage();
+      updateNavButtons();
     });
   </script>
 
