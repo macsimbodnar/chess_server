@@ -9,10 +9,11 @@ uvicorn main:app --reload
 ## TODO List
 
 * Back and forward moves
-* List of moves
 * Sounds
-* Board coordinates
-* Win and lose screen
 * Timer
 * Score
 * Load fen string
+
+### NOTE
+
+https://github.com/lichess-org/chessground/blob/master/src/config.ts
