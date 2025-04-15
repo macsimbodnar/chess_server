@@ -20,11 +20,26 @@
     <h1 class="title">Chesso</h1>
 
     <div id="board-and-moves">
-      
+
       <div id="board-container"></div>
 
       <!-- INFO PANEL -->
       <div id="move-list-panel">
+        <!-- CAPTURED PIECES -->
+        <div id="captured-pieces-display">
+          <div class="captured-row">
+            <div id="white-captures" class="captured-pieces">
+              <span class="piece-letter piece-black">W: </span>
+            </div>
+          </div>
+          <div class="captured-row">
+            <div id="black-captures" class="captured-pieces">
+              <span class="piece-letter piece-black">B: </span>
+            </div>
+          </div>
+          <div id="material-advantage"></div>
+        </div>
+        
         <!-- MOVE LIST -->
         <div id="move-list-wrapper">
           <table id="move-list-table">
@@ -85,6 +100,27 @@
       const overlay = document.getElementById('promotion-overlay');
       let pendingPromotion = null;
       let isFlipped = false;
+      let capturedPieces = { w: [], b: [] };
+      
+      // Material values for calculating advantage
+      const pieceValues = {
+        p: 1,   // pawn
+        n: 3,   // knight
+        b: 3,   // bishop
+        r: 5,   // rook
+        q: 9,   // queen
+        k: 0    // king (no material value)
+      };
+
+      // Display symbols for pieces (respecting chess convention)
+      const pieceDisplaySymbols = {
+        w: {
+          p: 'P', n: 'N', b: 'B', r: 'R', q: 'Q'
+        },
+        b: {
+          p: 'p', n: 'n', b: 'b', r: 'r', q: 'q'
+        }
+      };
 
       const ground = Chessground(boardElement, {
         draggable: {
@@ -109,6 +145,8 @@
             }
           }
         },
+        coordinatesOnSquares: false,
+        coordinates: true,
         highlight: {
           lastMove: true,
           check: true
@@ -134,6 +172,11 @@
       function apply_move(orig, dest, promotion) {
         const move = game.move({ from: orig, to: dest, promotion });
         if (move) {
+          // Check for captures
+          if (move.captured) {
+            updateCapturedPieces(move.captured, move.color === 'w' ? 'b' : 'w');
+          }
+          
           ground.set({
             fen: game.fen(),
             movable: {
@@ -142,11 +185,81 @@
             }
           });
 
-          check_gameover(); // ✅ here
+          check_gameover();
           update_move_list();
+          updateMaterialAdvantage();
         }
       }
 
+      function updateCapturedPieces(pieceType, color) {
+        capturedPieces[color].push(pieceType);
+        displayCapturedPieces();
+      }
+      
+      function displayCapturedPieces() {
+        const whiteCapturesElement = document.getElementById('white-captures');
+        const blackCapturesElement = document.getElementById('black-captures');
+        
+        whiteCapturesElement.innerHTML = '<span class="piece-letter piece-black">W: </span>';
+        blackCapturesElement.innerHTML = '<span class="piece-letter piece-black">B: </span>';
+        
+        // Sort pieces by value before displaying
+        capturedPieces.w.sort((a, b) => pieceValues[b] - pieceValues[a]);
+        capturedPieces.b.sort((a, b) => pieceValues[b] - pieceValues[a]);
+        
+        // Display white's captured pieces (captured by black)
+        capturedPieces.w.forEach(piece => {
+          const pieceElem = document.createElement('span');
+          pieceElem.className = 'piece-letter piece-white';
+          pieceElem.textContent = pieceDisplaySymbols.w[piece] || piece.toUpperCase();
+          blackCapturesElement.appendChild(pieceElem);
+        });
+        
+        // Display black's captured pieces (captured by white)
+        capturedPieces.b.forEach(piece => {
+          const pieceElem = document.createElement('span');
+          pieceElem.className = 'piece-letter piece-black';
+          pieceElem.textContent = pieceDisplaySymbols.b[piece] || piece.toLowerCase();
+          whiteCapturesElement.appendChild(pieceElem);
+        });
+      }
+      
+      function updateMaterialAdvantage() {
+        const advantageElement = document.getElementById('material-advantage');
+        
+        // Calculate material advantage
+        let whiteMaterial = 0;
+        let blackMaterial = 0;
+        
+        // Add up material for all pieces on the board
+        const position = game.board();
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 8; j++) {
+            const square = position[i][j];
+            if (square) {
+              if (square.color === 'w') {
+                whiteMaterial += pieceValues[square.type];
+              } else {
+                blackMaterial += pieceValues[square.type];
+              }
+            }
+          }
+        }
+        
+        const advantage = whiteMaterial - blackMaterial;
+        
+        // Display the advantage
+        if (advantage > 0) {
+          advantageElement.textContent = `White: +${advantage}`;
+          advantageElement.style.color = '#8ff';
+        } else if (advantage < 0) {
+          advantageElement.textContent = `Black: +${Math.abs(advantage)}`;
+          advantageElement.style.color = '#8ff';
+        } else {
+          advantageElement.textContent = 'Even';
+          advantageElement.style.color = '#f5f5f5';
+        }
+      }
 
       document.querySelectorAll('.promotion-options button').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -181,6 +294,11 @@
         game.reset();
         gameoverOverlay.classList.add('hidden');
         document.getElementById('move-list-body').innerHTML = '';
+        
+        // Reset captured pieces
+        capturedPieces = { w: [], b: [] };
+        displayCapturedPieces();
+        updateMaterialAdvantage();
 
         ground.set({
           fen: game.fen(),
@@ -240,7 +358,6 @@
         tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight;
       }
 
-
       document.querySelectorAll('.flip-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           isFlipped = !isFlipped;
@@ -248,13 +365,12 @@
         });
       });
 
-
+      // Initialize displays
+      displayCapturedPieces();
+      updateMaterialAdvantage();
     });
-
-
   </script>
 
 </body>
-
 
 </html>
