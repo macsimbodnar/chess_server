@@ -40,7 +40,7 @@
           </div>
           <div id="material-advantage"></div>
         </div>
-        
+
         <!-- MOVE LIST -->
         <div id="move-list-wrapper">
           <table id="move-list-table">
@@ -60,6 +60,7 @@
             <button id="prev-move-button" class="nav-btn" disabled><i class="fas fa-chevron-left"></i></button>
             <button id="flip-button" class="flip-btn"><i class="fas fa-retweet"></i></button>
             <button id="next-move-button" class="nav-btn" disabled><i class="fas fa-chevron-right"></i></button>
+            <button id="engine-move-button" class="nav-btn"><i class="fas fa-robot"></i></button>
           </div>
         </div>
       </div>
@@ -71,6 +72,7 @@
         <button id="prev-move-button-mobile" class="nav-btn" disabled><i class="fas fa-chevron-left"></i></button>
         <button id="flip-button-mobile" class="flip-btn"><i class="fas fa-retweet"></i></button>
         <button id="next-move-button-mobile" class="nav-btn" disabled><i class="fas fa-chevron-right"></i></button>
+        <button id="engine-move-button-mobile" class="nav-btn"><i class="fas fa-robot"></i></button>
       </div>
     </div>
 
@@ -110,12 +112,15 @@
       let pendingPromotion = null;
       let isFlipped = false;
       let capturedPieces = { w: [], b: [] };
-      
+      let waitingForEngineResponse = false;
+      let playerColor = 'w'; // Player always starts as white
+      let engineColor = 'b';  // Engine is black
+
       // Current move tracking for history navigation
       let currentMoveIndex = -1;
       let gameMoves = [];
       let boardStates = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']; // Starting position
-      
+
       // Material values for calculating advantage
       const pieceValues = {
         p: 1,   // pawn
@@ -136,30 +141,25 @@
         }
       };
 
+      // Initialize the chess board with Chessground
       const ground = Chessground(boardElement, {
-        draggable: {
-          enabled: true,
-          showGhost: true
-        },
+        orientation: 'white',
+        turnColor: 'white',
         movable: {
           free: false,
           color: 'white',
           dests: compute_dests(),
           events: {
-            after: (orig, dest) => {
-              const moves = game.moves({ square: orig, verbose: true });
-              const move = moves.find(m => m.to === dest);
-
-              if (move && move.promotion) {
-                pendingPromotion = { orig, dest };
-                overlay.classList.remove('hidden');
-              } else {
-                apply_move(orig, dest, 'q'); // normal move
-              }
-            }
+            after: onMove
           }
         },
-        coordinatesOnSquares: false,
+        premovable: {
+          enabled: false
+        },
+        draggable: {
+          enabled: true,
+          showGhost: true
+        },
         coordinates: true,
         highlight: {
           lastMove: true,
@@ -172,62 +172,97 @@
         fen: game.fen()
       });
 
+      // Calculate all possible destinations for each piece
       function compute_dests() {
         const dests = new Map();
         game.SQUARES.forEach(sq => {
-          const moves = game.moves({ square: sq, verbose: true });
-          if (moves.length) {
-            dests.set(sq, moves.map(m => m.to));
+          const ms = game.moves({ square: sq, verbose: true });
+          if (ms.length) {
+            dests.set(sq, ms.map(m => m.to));
           }
         });
         return dests;
       }
 
-      function apply_move(orig, dest, promotion) {
+      // Handle piece movements
+      function onMove(orig, dest) {
+        const moves = game.moves({ square: orig, verbose: true });
+        const move = moves.find(m => m.to === dest);
+
+        if (move && move.promotion) {
+          pendingPromotion = { orig, dest };
+          overlay.classList.remove('hidden');
+        } else {
+          make_move(orig, dest, 'q'); // Default to queen for promotion if not handled
+        }
+      }
+
+      // Apply the move to both the chess.js game and the Chessground board
+      function make_move(orig, dest, promotion) {
+        // Only allow player to move their own pieces
+        if (game.turn() !== playerColor) {
+          console.log("Not player's turn");
+          return false;
+        }
+
         const move = game.move({ from: orig, to: dest, promotion });
         if (move) {
-          // Check for captures
+          // Handle captures
           if (move.captured) {
             updateCapturedPieces(move.captured, move.color === 'w' ? 'b' : 'w');
           }
-          
+
           // Save move for history navigation
-          gameMoves.push({ from: orig, to: dest, promotion: promotion });
+          gameMoves.push({ from: orig, to: dest, promotion });
           boardStates.push(game.fen());
           currentMoveIndex = boardStates.length - 1;
-          
+
+          // Update the board display
           ground.set({
             fen: game.fen(),
+            lastMove: [orig, dest],
+            turnColor: game.turn() === 'w' ? 'white' : 'black',
             movable: {
               color: game.turn() === 'w' ? 'white' : 'black',
               dests: compute_dests()
             }
           });
 
-          // Update history navigation buttons
+          // Update UI components
           updateNavButtons();
           check_gameover();
           update_move_list();
           updateMaterialAdvantage();
+
+          // Automatically make engine move if it's engine's turn
+          if (!game.game_over() && game.turn() === engineColor && !waitingForEngineResponse) {
+            setTimeout(() => {
+              make_engine_move();
+            }, 300);
+          }
+
+          return true;
         }
+
+        return false;
       }
 
       function updateCapturedPieces(pieceType, color) {
         capturedPieces[color].push(pieceType);
         displayCapturedPieces();
       }
-      
+
       function displayCapturedPieces() {
         const whiteCapturesElement = document.getElementById('white-captures');
         const blackCapturesElement = document.getElementById('black-captures');
-        
+
         whiteCapturesElement.innerHTML = '<span class="piece-letter piece-black">W: </span>';
         blackCapturesElement.innerHTML = '<span class="piece-letter piece-black">B: </span>';
-        
+
         // Sort pieces by value before displaying
         capturedPieces.w.sort((a, b) => pieceValues[b] - pieceValues[a]);
         capturedPieces.b.sort((a, b) => pieceValues[b] - pieceValues[a]);
-        
+
         // Display white's captured pieces (captured by black)
         capturedPieces.w.forEach(piece => {
           const pieceElem = document.createElement('span');
@@ -235,7 +270,7 @@
           pieceElem.textContent = pieceDisplaySymbols.w[piece] || piece.toUpperCase();
           blackCapturesElement.appendChild(pieceElem);
         });
-        
+
         // Display black's captured pieces (captured by white)
         capturedPieces.b.forEach(piece => {
           const pieceElem = document.createElement('span');
@@ -244,14 +279,14 @@
           whiteCapturesElement.appendChild(pieceElem);
         });
       }
-      
+
       function updateMaterialAdvantage() {
         const advantageElement = document.getElementById('material-advantage');
-        
+
         // Calculate material advantage
         let whiteMaterial = 0;
         let blackMaterial = 0;
-        
+
         // Add up material for all pieces on the board
         const position = game.board();
         for (let i = 0; i < 8; i++) {
@@ -266,9 +301,9 @@
             }
           }
         }
-        
+
         const advantage = whiteMaterial - blackMaterial;
-        
+
         // Display the advantage
         if (advantage > 0) {
           advantageElement.textContent = `White: +${advantage}`;
@@ -282,11 +317,12 @@
         }
       }
 
+      // Handle promotion piece selection
       document.querySelectorAll('.promotion-options button').forEach(btn => {
         btn.addEventListener('click', () => {
           if (pendingPromotion) {
             const piece = btn.dataset.piece;
-            apply_move(pendingPromotion.orig, pendingPromotion.dest, piece);
+            make_move(pendingPromotion.orig, pendingPromotion.dest, piece);
             pendingPromotion = null;
             overlay.classList.add('hidden');
           }
@@ -297,15 +333,27 @@
       const gameoverMessage = document.getElementById('gameover-message');
       const newgameButton = document.getElementById('newgame-button');
 
-      // Check if game is over and show overlay
+      // Check if game is over and display appropriate message
       function check_gameover() {
         if (game.game_over()) {
-          const winner = game.in_draw() ? 'Draw' : (game.turn() === 'w' ? 'Black Wins' : 'White Wins');
-          gameoverMessage.textContent = winner;
+          let message = '';
+          if (game.in_checkmate()) {
+            message = game.turn() === 'w' ? 'Black Wins' : 'White Wins';
+          } else if (game.in_stalemate()) {
+            message = 'Stalemate';
+          } else if (game.in_draw()) {
+            message = 'Draw';
+          } else if (game.in_threefold_repetition()) {
+            message = 'Draw by Repetition';
+          } else if (game.insufficient_material()) {
+            message = 'Draw by Insufficient Material';
+          }
+
+          gameoverMessage.textContent = message;
           gameoverOverlay.classList.remove('hidden');
 
           ground.set({
-            movable: { color: null, dests: new Map() } // ⛔ disable interaction
+            movable: { color: 'none', dests: new Map() }
           });
         }
       }
@@ -315,53 +363,33 @@
         game.reset();
         gameoverOverlay.classList.add('hidden');
         document.getElementById('move-list-body').innerHTML = '';
-        
+
         // Reset captured pieces
         capturedPieces = { w: [], b: [] };
         displayCapturedPieces();
         updateMaterialAdvantage();
-        
+
         // Reset move history
         gameMoves = [];
-        boardStates = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']; 
+        boardStates = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'];
         currentMoveIndex = 0;
-        
+
         // Reset navigation buttons
         updateNavButtons();
 
+        // Reset flags
+        waitingForEngineResponse = false;
+
+        // Reset the board
         ground.set({
           fen: game.fen(),
+          orientation: isFlipped ? 'black' : 'white',
           turnColor: 'white',
-          draggable: {
-            enabled: true,
-            showGhost: true
-          },
           movable: {
-            free: false,
             color: 'white',
-            dests: compute_dests(),
-            events: {
-              after: (orig, dest) => {
-                const moves = game.moves({ square: orig, verbose: true });
-                const move = moves.find(m => m.to === dest);
-
-                if (move && move.promotion) {
-                  pendingPromotion = { orig, dest };
-                  overlay.classList.remove('hidden');
-                } else {
-                  apply_move(orig, dest, 'q');
-                }
-              }
-            }
+            dests: compute_dests()
           },
-          highlight: {
-            lastMove: true,
-            check: true
-          },
-          animation: {
-            enabled: true,
-            duration: 300
-          }
+          lastMove: undefined
         });
       });
 
@@ -375,94 +403,105 @@
           const whiteMove = moves[i] || '';
           const blackMove = moves[i + 1] || '';
           const row = document.createElement('tr');
-          
+
           // Highlight the current move
           const isCurrentRow = (i === currentMoveIndex || i + 1 === currentMoveIndex);
           if (isCurrentRow) {
             row.classList.add('current-move-row');
           }
-          
+
           row.innerHTML = `
-                            <td>${moveNumber}</td>
-                            <td class="${i === currentMoveIndex ? 'current-move' : ''}">${whiteMove}</td>
-                            <td class="${i + 1 === currentMoveIndex ? 'current-move' : ''}">${blackMove}</td>
-                          `;
+            <td>${moveNumber}</td>
+            <td class="${i === currentMoveIndex ? 'current-move' : ''}">${whiteMove}</td>
+            <td class="${i + 1 === currentMoveIndex ? 'current-move' : ''}">${blackMove}</td>
+          `;
           tbody.appendChild(row);
         }
 
         // Auto scroll to bottom
-        tbody.parentElement.scrollTop = tbody.parentElement.scrollHeight;
+        const moveList = document.getElementById('move-list-wrapper');
+        moveList.scrollTop = moveList.scrollHeight;
       }
 
       // Move history navigation functions
       function goToPrevMove() {
         if (currentMoveIndex > 0) {
           currentMoveIndex--;
-          
+
           // Create a new chess instance to view this position
           const viewGame = new Chess();
           viewGame.load(boardStates[currentMoveIndex]);
-          
+
           // Update the board display only
           ground.set({
             fen: viewGame.fen(),
-            movable: { 
-              color: null, // Disable moves during history viewing
-              dests: new Map() 
+            lastMove: currentMoveIndex > 0 ? [
+              gameMoves[currentMoveIndex - 1].from,
+              gameMoves[currentMoveIndex - 1].to
+            ] : undefined,
+            movable: {
+              color: 'none', // Disable moves during history viewing
+              dests: new Map()
             }
           });
-          
+
           // Update move list highlighting
           update_move_list_highlighting();
           updateNavButtons();
         }
       }
-      
+
       function goToNextMove() {
         if (currentMoveIndex < boardStates.length - 1) {
           currentMoveIndex++;
-          
+
           // Create a new chess instance to view this position
           const viewGame = new Chess();
           viewGame.load(boardStates[currentMoveIndex]);
-          
+
           // Update the board display only
           ground.set({
             fen: viewGame.fen(),
-            movable: { 
-              color: null, // Disable moves during history viewing
-              dests: new Map() 
+            lastMove: [
+              gameMoves[currentMoveIndex - 1].from,
+              gameMoves[currentMoveIndex - 1].to
+            ],
+            movable: {
+              color: 'none', // Disable moves during history viewing
+              dests: new Map()
             }
           });
-          
+
           // If we're back at the current game state, re-enable moves
           if (currentMoveIndex === boardStates.length - 1) {
+            const currentTurn = game.turn();
             ground.set({
+              turnColor: currentTurn === 'w' ? 'white' : 'black',
               movable: {
-                color: game.turn() === 'w' ? 'white' : 'black',
+                color: currentTurn === playerColor ? (currentTurn === 'w' ? 'white' : 'black') : 'none',
                 dests: compute_dests()
               }
             });
           }
-          
+
           // Update move list highlighting
           update_move_list_highlighting();
           updateNavButtons();
         }
       }
-      
+
       function update_move_list_highlighting() {
         // Remove all highlighting
         const cells = document.querySelectorAll('#move-list-body td');
         cells.forEach(cell => {
           cell.classList.remove('current-move');
         });
-        
+
         // Add highlighting to current move
         const moveIndex = currentMoveIndex;
         const isWhiteMove = moveIndex % 2 === 0;
         const rowIndex = Math.floor(moveIndex / 2);
-        
+
         const rows = document.querySelectorAll('#move-list-body tr');
         if (rows[rowIndex]) {
           // +1 because first column is the move number
@@ -473,17 +512,17 @@
           }
         }
       }
-      
+
       function updateNavButtons() {
         // Update desktop buttons
         document.getElementById('prev-move-button').disabled = currentMoveIndex <= 0;
         document.getElementById('next-move-button').disabled = currentMoveIndex >= boardStates.length - 1;
-        
+
         // Update mobile buttons
         document.getElementById('prev-move-button-mobile').disabled = currentMoveIndex <= 0;
         document.getElementById('next-move-button-mobile').disabled = currentMoveIndex >= boardStates.length - 1;
       }
-      
+
       // Attach event listeners for navigation buttons
       document.getElementById('prev-move-button').addEventListener('click', goToPrevMove);
       document.getElementById('next-move-button').addEventListener('click', goToNextMove);
@@ -496,6 +535,124 @@
           isFlipped = !isFlipped;
           ground.set({ orientation: isFlipped ? 'black' : 'white' });
         });
+      });
+
+      // Make the engine move
+      function make_engine_move() {
+        if (game.game_over() || waitingForEngineResponse) {
+          return;
+        }
+
+        waitingForEngineResponse = true;
+        let depth = 4;
+        let time = 0;
+
+        // Disable board during engine thinking
+        ground.set({
+          movable: {
+            color: 'none',
+            dests: new Map()
+          }
+        });
+
+        console.log("Engine thinking...");
+
+        $.ajax({
+          url: '/make_move',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            fen: game.fen(),
+            depth: depth.toString(),
+            time: time.toString()
+          }),
+          success: function (response) {
+            console.log("Engine response:", response);
+
+            // Get the move details before applying it
+            const move = game.move(response.best_move, { sloppy: true });
+
+            if (move) {
+              console.log("Engine move:", move);
+
+              // Check for captures
+              if (move.captured) {
+                updateCapturedPieces(move.captured, move.color === 'w' ? 'b' : 'w');
+              }
+
+              // Save move for history navigation
+              gameMoves.push({
+                from: move.from,
+                to: move.to,
+                promotion: move.promotion
+              });
+              boardStates.push(game.fen());
+              currentMoveIndex = boardStates.length - 1;
+
+              // Update the board
+              ground.set({
+                fen: game.fen(),
+                lastMove: [move.from, move.to],
+                turnColor: game.turn() === 'w' ? 'white' : 'black'
+              });
+
+              // Re-enable player moves if it's their turn
+              if (game.turn() === playerColor) {
+                console.log("Re-enabling player moves");
+                ground.set({
+                  movable: {
+                    color: game.turn() === 'w' ? 'white' : 'black',
+                    dests: compute_dests()
+                  }
+                });
+              }
+
+              // Update all the UI elements and statuses
+              updateNavButtons();
+              check_gameover();
+              update_move_list();
+              updateMaterialAdvantage();
+            }
+            waitingForEngineResponse = false;
+          },
+          error: function (xhr, status, error) {
+            console.error('Engine move error:', error);
+            waitingForEngineResponse = false;
+
+            // Re-enable board interaction on error
+            if (game.turn() === playerColor) {
+              ground.set({
+                movable: {
+                  color: game.turn() === 'w' ? 'white' : 'black',
+                  dests: compute_dests()
+                }
+              });
+            }
+          }
+        });
+      }
+
+      // Attach event listeners for engine move buttons
+      document.getElementById('engine-move-button').addEventListener('click', () => {
+        if (game.turn() === playerColor) {
+          // If it's player's turn, make the move for the player
+          console.log("Making move for player...");
+          make_engine_move();
+        } else {
+          // If it's engine's turn, continue with normal engine move
+          make_engine_move();
+        }
+      });
+
+      document.getElementById('engine-move-button-mobile').addEventListener('click', () => {
+        if (game.turn() === playerColor) {
+          // If it's player's turn, make the move for the player
+          console.log("Making move for player...");
+          make_engine_move();
+        } else {
+          // If it's engine's turn, continue with normal engine move
+          make_engine_move();
+        }
       });
 
       // Initialize displays

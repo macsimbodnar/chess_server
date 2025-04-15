@@ -317,6 +317,15 @@ body {
   color: #f5f5f5;
 }
 
+/* Fix for desktop button icons alignment */
+.nav-btn,
+.flip-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
 /* Mobile-Specific Adjustments */
 @media (max-width: 768px) {
 
