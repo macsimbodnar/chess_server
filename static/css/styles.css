@@ -120,23 +120,6 @@ body {
   color: #f5f5f5;
 }
 
-#newgame-button {
-  background: #333;
-  color: #f5f5f5;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.9rem;
-  padding: 0.8rem 1.2rem;
-  border: 2px solid #666;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-#newgame-button:hover {
-  background-color: #444;
-  transform: scale(1.05);
-}
-
 #board-and-moves {
   display: flex;
   flex-direction: row;
@@ -408,5 +391,119 @@ body {
 
   .piece-letter {
     font-size: 0.7rem;
+  }
+}
+
+
+/* Common overlay styles */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(6px);
+  background-color: rgba(18, 18, 18, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.overlay-dialog {
+  text-align: center;
+  background-color: #1f1f1f;
+  padding: 2rem 3rem;
+  border: 2px solid #555;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.overlay-dialog h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  color: #f5f5f5;
+}
+
+/* Color selection buttons */
+.color-options {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.color-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #333;
+  color: #f5f5f5;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  padding: 1rem;
+  border: 2px solid #666;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 5rem;
+}
+
+.color-btn:hover {
+  background-color: #444;
+  transform: scale(1.05);
+  border-color: #888;
+}
+
+.piece-icon {
+  font-size: 2rem;
+  margin-bottom: 0.7rem;
+}
+
+.white-piece {
+  color: #f0f0f0;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.black-piece {
+  color: #aaa;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Game options */
+.game-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mt-3 {
+  margin-top: 1.5rem;
+}
+
+/* Update existing styles */
+#gameover-dialog {
+  text-align: center;
+  background-color: #1f1f1f;
+  padding: 2rem 3rem;
+  border: 2px solid #555;
+  border-radius: 10px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .overlay-dialog {
+    padding: 1.5rem;
+    width: 80%;
+  }
+
+  .color-btn {
+    padding: 0.8rem;
+    width: 4.5rem;
+    font-size: 0.6rem;
+  }
+
+  .piece-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
   }
 }

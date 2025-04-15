@@ -89,13 +89,42 @@
       </div>
     </div>
   </div>
-  <!-- GAME OVER -->
-  <div id="gameover-overlay" class="hidden">
-    <div id="gameover-dialog">
-      <h2 id="gameover-message">White Wins</h2>
-      <button id="newgame-button">New Game</button>
+
+  <!-- COLOR SELECTION OVERLAY -->
+  <div id="color-select-overlay" class="overlay">
+    <div class="overlay-dialog">
+      <h2>Choose Your Color</h2>
+      <div class="color-options">
+        <button class="color-btn" data-color="white">
+          <div class="piece-icon white-piece">♔</div>
+          <span>White</span>
+        </button>
+        <button class="color-btn" data-color="black">
+          <div class="piece-icon black-piece">♚</div>
+          <span>Black</span>
+        </button>
+      </div>
     </div>
   </div>
+  <!-- GAME OVER --><!-- Update the game over overlay to include color selection -->
+  <div id="gameover-overlay" class="overlay hidden">
+    <div class="overlay-dialog">
+      <h2 id="gameover-message">White Wins</h2>
+      <div class="game-options">
+        <div class="color-options mt-3">
+          <button class="color-btn" data-color="white">
+            <div class="piece-icon white-piece">♔</div>
+            <span>White</span>
+          </button>
+          <button class="color-btn" data-color="black">
+            <div class="piece-icon black-piece">♚</div>
+            <span>Black</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <script src="static/js/jquery-3.5.1.min.js"></script>
   <script src="static/js/bootstrap.min.js"></script>
@@ -113,9 +142,68 @@
       let isFlipped = false;
       let capturedPieces = { w: [], b: [] };
       let waitingForEngineResponse = false;
-      let playerColor = 'w'; // Player always starts as white
-      let engineColor = 'b';  // Engine is black
+      let playerColor = 'w'; // Default: player is white
+      let engineColor = 'b'; // Default: engine is black
 
+      // Show the color selection overlay when the page loads
+      const colorSelectOverlay = document.getElementById('color-select-overlay');
+
+      // Handle color selection from any overlay
+      document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const selectedColor = e.currentTarget.dataset.color;
+          playerColor = selectedColor === 'white' ? 'w' : 'b';
+          engineColor = playerColor === 'w' ? 'b' : 'w';
+
+          // Hide both overlays
+          colorSelectOverlay.classList.add('hidden');
+          gameoverOverlay.classList.add('hidden');
+
+          // Reset game
+          resetGame();
+
+          // If player is black, make engine move first
+          if (playerColor === 'b') {
+            setTimeout(() => {
+              make_engine_move();
+            }, 500);
+          }
+        });
+      });
+
+      // Function to reset game (extract from newgame button handler)
+      function resetGame() {
+        game.reset();
+        document.getElementById('move-list-body').innerHTML = '';
+
+        // Reset captured pieces
+        capturedPieces = { w: [], b: [] };
+        displayCapturedPieces();
+        updateMaterialAdvantage();
+
+        // Reset move history
+        gameMoves = [];
+        boardStates = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'];
+        currentMoveIndex = 0;
+
+        // Reset navigation buttons
+        updateNavButtons();
+
+        // Reset flags
+        waitingForEngineResponse = false;
+
+        // Reset the board
+        ground.set({
+          fen: game.fen(),
+          orientation: playerColor === 'w' ? (isFlipped ? 'black' : 'white') : (isFlipped ? 'white' : 'black'),
+          turnColor: 'white',
+          movable: {
+            color: game.turn() === playerColor ? (game.turn() === 'w' ? 'white' : 'black') : 'none',
+            dests: compute_dests()
+          },
+          lastMove: undefined
+        });
+      }
       // Current move tracking for history navigation
       let currentMoveIndex = -1;
       let gameMoves = [];
@@ -140,6 +228,7 @@
           p: 'p', n: 'n', b: 'b', r: 'r', q: 'q'
         }
       };
+
 
       // Initialize the chess board with Chessground
       const ground = Chessground(boardElement, {
@@ -172,6 +261,7 @@
         fen: game.fen()
       });
 
+
       // Calculate all possible destinations for each piece
       function compute_dests() {
         const dests = new Map();
@@ -186,6 +276,12 @@
 
       // Handle piece movements
       function onMove(orig, dest) {
+        // Only allow moves if it's the player's turn
+        // if (game.turn() !== playerColor) {
+        //   console.log("Not player's turn");
+        //   return;
+        // }
+
         const moves = game.moves({ square: orig, verbose: true });
         const move = moves.find(m => m.to === dest);
 
@@ -200,10 +296,10 @@
       // Apply the move to both the chess.js game and the Chessground board
       function make_move(orig, dest, promotion) {
         // Only allow player to move their own pieces
-        if (game.turn() !== playerColor) {
-          console.log("Not player's turn");
-          return false;
-        }
+        // if (game.turn() !== playerColor) {
+        //   console.log("Not player's turn");
+        //   return false;
+        // }
 
         const move = game.move({ from: orig, to: dest, promotion });
         if (move) {
@@ -331,7 +427,6 @@
 
       const gameoverOverlay = document.getElementById('gameover-overlay');
       const gameoverMessage = document.getElementById('gameover-message');
-      const newgameButton = document.getElementById('newgame-button');
 
       // Check if game is over and display appropriate message
       function check_gameover() {
@@ -357,41 +452,6 @@
           });
         }
       }
-
-      // New game button resets everything
-      newgameButton.addEventListener('click', () => {
-        game.reset();
-        gameoverOverlay.classList.add('hidden');
-        document.getElementById('move-list-body').innerHTML = '';
-
-        // Reset captured pieces
-        capturedPieces = { w: [], b: [] };
-        displayCapturedPieces();
-        updateMaterialAdvantage();
-
-        // Reset move history
-        gameMoves = [];
-        boardStates = ['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'];
-        currentMoveIndex = 0;
-
-        // Reset navigation buttons
-        updateNavButtons();
-
-        // Reset flags
-        waitingForEngineResponse = false;
-
-        // Reset the board
-        ground.set({
-          fen: game.fen(),
-          orientation: isFlipped ? 'black' : 'white',
-          turnColor: 'white',
-          movable: {
-            color: 'white',
-            dests: compute_dests()
-          },
-          lastMove: undefined
-        });
-      });
 
       function update_move_list() {
         const moves = game.history();
