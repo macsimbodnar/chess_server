@@ -8,10 +8,8 @@ uvicorn main:app --reload
 
 ## TODO List
 
-* Back and forward moves
 * Sounds
 * Timer
-* Score
 * Load fen string
 
 ### NOTE
