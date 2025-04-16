@@ -31,7 +31,7 @@ def log(log: str):
     log_instance.error(log)
 
 
-engine = chess.engine.SimpleEngine.popen_uci("engine/chesso_engine")
+engine = chess.engine.SimpleEngine.popen_uci("engine/chesso_engine_0.1.2")
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
