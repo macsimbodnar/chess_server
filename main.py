@@ -45,41 +45,61 @@ async def post_make_move(board_status: MoveInput):
 
     board = chess.Board(board_status.fen)
 
-    info = None
+    play_result = None
     if board_status.time > 0:
-        info = engine.analyse(
+        play_result = engine.play(
             board, chess.engine.Limit(time=board_status.time))
 
     if board_status.depth > 0:
-        info = engine.analyse(
+        play_result = engine.play(
             board, chess.engine.Limit(depth=board_status.depth))
 
     if board_status.depth == 0 and board_status.time == 0:
-        info = engine.analyse(
+        play_result = engine.play(
             board, chess.engine.Limit(time=0.01))
 
-    if not info:
+    if not play_result:
         raise HTTPException(
             status_code=500, detail="Failed to execute the engine")
 
-    # PV is Principal variation
-    best_move = info['pv'][0]
+    best_move = play_result.move
+    info = play_result.info
 
     board.push(best_move)
     fen = board.fen()
 
-    pv = [str(move) for move in info['pv']]
-    score = info['score']
+    pv = []
+    if info:
+        pv = [str(move) for move in info['pv']]
+
+    w_score = 0
+    b_score = 0
+    if info:
+        score = info['score']
+        w_score = score.white().score()
+        b_score = score.black().score()
+
+    nodes = 0
+    if info:
+        nodes = info['nodes']
+
+    time = 0
+    if info:
+        time = info['time']
+
+    depth = 0
+    if info:
+        depth = info['depth']
 
     result = MoveResult(
         fen=fen,
         best_move=str(best_move),
-        w_score=score.white().score(),
-        b_score=score.black().score(),
+        w_score=w_score,
+        b_score=b_score,
         pv=pv,
-        nodes=info['nodes'],
-        time=info['time'],
-        depth=info['depth'])
+        nodes=nodes,
+        time=time,
+        depth=depth)
 
     return result
 
