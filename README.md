@@ -6,6 +6,29 @@
 uvicorn main:app --reload
 ```
 
+## Run in production
+
+```bash
+# Start
+docker compose up --build -d
+
+# Stop
+docker compose down
+
+# Monitor logs
+docker compose logs --follow 
+
+# OR start attached to the shell
+docker compose up --build 
+```
+
+## Cleanup dockers for free space on server
+
+```bash
+docker rm -vf $(docker ps -aq)
+docker rmi -f $(docker images -aq)
+```
+
 ## TODO List
 
 * Sounds
@@ -14,4 +37,4 @@ uvicorn main:app --reload
 
 ### NOTE
 
-https://github.com/lichess-org/chessground/blob/master/src/config.ts
+[Lichess board configuration](https://github.com/lichess-org/chessground/blob/master/src/config.ts)
