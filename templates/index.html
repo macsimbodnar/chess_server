@@ -17,6 +17,25 @@
 
 <body>
 
+  <div class="position-absolute top-0 end-0 p-3 z-3">
+    <div class="dropdown">
+      <button class="btn btn-dark d-flex justify-content-center align-items-center p-0 rounded-circle border-0"
+        type="button" id="settingsMenu" data-bs-toggle="dropdown" aria-expanded="false"
+        style="width: 40px; height: 40px;">
+        <i class="fas fa-cog"></i>
+      </button>
+
+
+      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsMenu">
+        <li><a class="dropdown-item" href="https://github.com/macsimbodnar/chesso" target="_blank">Engine Github</a>
+        </li>
+        <li><a class="dropdown-item" href="https://github.com/macsimbodnar/chess_server" target="_blank">Server
+            Github</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
   <div id="main-container">
     <h1 class="title">Chesso</h1>
 
@@ -127,6 +146,7 @@
 
 
   <script src="static/js/jquery-3.5.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
   <script src="static/js/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.1/chess.js"
     integrity="sha384-8sJV/krC8iV2g7t0PolQxFVckDtxhfM5gNHNAFPG2ZS/bScudOjfsB8ewhG2xle8"

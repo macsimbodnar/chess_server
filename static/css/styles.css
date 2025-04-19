@@ -492,3 +492,11 @@ body {
     margin-bottom: 0.5rem;
   }
 }
+
+.z-3 {
+  z-index: 10003;
+}
+
+.btn-dark:hover {
+  background-color: #222 !important;
+}
