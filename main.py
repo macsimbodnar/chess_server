@@ -7,6 +7,7 @@ import logging
 import chess
 import chess.engine
 from typing import Optional
+import subprocess
 
 
 class MoveInput(BaseModel):
@@ -31,7 +32,9 @@ def log(log: str):
     log_instance.error(log)
 
 
-engine = chess.engine.SimpleEngine.popen_uci("engine/chesso_engine_0.1.2")
+# Mute the engine logs with stderr=subprocess.DEVNULL
+engine = chess.engine.SimpleEngine.popen_uci(
+    "engine/chesso_engine", stderr=subprocess.DEVNULL)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -48,15 +51,15 @@ async def post_make_move(board_status: MoveInput):
     play_result = None
     if board_status.time > 0:
         play_result = engine.play(
-            board, chess.engine.Limit(time=board_status.time))
+            board, chess.engine.Limit(time=board_status.time), info=chess.engine.INFO_ALL)
 
     if board_status.depth > 0:
         play_result = engine.play(
-            board, chess.engine.Limit(depth=board_status.depth))
+            board, chess.engine.Limit(depth=board_status.depth), info=chess.engine.INFO_ALL)
 
     if board_status.depth == 0 and board_status.time == 0:
         play_result = engine.play(
-            board, chess.engine.Limit(time=0.01))
+            board, chess.engine.Limit(time=0.01), info=chess.engine.INFO_ALL)
 
     if not play_result:
         raise HTTPException(
