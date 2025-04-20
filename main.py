@@ -34,7 +34,7 @@ def log(log: str):
 
 # Mute the engine logs with stderr=subprocess.DEVNULL
 engine = chess.engine.SimpleEngine.popen_uci(
-    "engine/chesso_engine", stderr=subprocess.DEVNULL)
+    "engine/chesso_engine_v0.2.1", stderr=subprocess.DEVNULL)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
