@@ -7,11 +7,13 @@ services:
       - 5000
     restart: always
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.chess.rule=Host(`mazerfaker.com`)"
-      - "traefik.http.routers.chess.entrypoints=websecure"
-      - "traefik.http.routers.chess.tls=true"
-      - "traefik.http.routers.chess.tls.certresolver=letsencrypt"
+      - traefik.enable=true
+      - traefik.http.routers.chess.rule=Host(`mazerfaker.com`)
+      - traefik.http.routers.chess.entrypoints=websecure
+      - traefik.http.routers.chess.tls=true
+      - traefik.http.routers.chess.tls.certresolver=letsencrypt
+      # (optional but good)
+      - traefik.http.services.chess.loadbalancer.server.port=5000
     environment:
       - TIMEOUT="600"
       - GRACEFUL_TIMEOUT="600"
