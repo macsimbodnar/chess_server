@@ -7,21 +7,23 @@ services:
       - 5000
     restart: always
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.fastapi.rule=Host(`mazerfaker.com`)"
-      - "traefik.http.routers.fastapi.tls=true"
-      - "traefik.http.routers.fastapi.tls.certresolver=letsencrypt"
+      - traefik.enable=true
+      - traefik.http.routers.chess.rule=Host(`mazerfaker.com`)
+      - traefik.http.routers.chess.entrypoints=websecure
+      - traefik.http.routers.chess.tls=true
+      - traefik.http.routers.chess.tls.certresolver=letsencrypt
+      # (optional but good)
+      - traefik.http.services.chess.loadbalancer.server.port=5000
     environment:
       - TIMEOUT="600"
       - GRACEFUL_TIMEOUT="600"
+    networks:
+      - proxy
+      - default
 
-  traefik:
-    image: traefik:v2.2
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - "/etc/mazerfaker.com/letsencrypt:/letsencrypt"
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./traefik/traefik.prod.toml:/etc/traefik/traefik.toml"
+networks:
+  proxy:
+    external: true
+    name: mazerfaker-proxy
+  default:
+    driver: bridge
