@@ -1,7 +1,7 @@
 services:
   web:
     build:
-       context: .
+      context: .
     command: gunicorn main:app --bind 0.0.0.0:5000 -w 4 -k uvicorn.workers.UvicornWorker
     expose:
       - 5000
@@ -12,8 +12,8 @@ services:
       - traefik.http.routers.chess.entrypoints=websecure
       - traefik.http.routers.chess.tls=true
       - traefik.http.routers.chess.tls.certresolver=letsencrypt
-      # (optional but good)
-      - traefik.http.services.chess.loadbalancer.server.port=5000
+
+      - traefik.http.routers.chess.middlewares=sec-headers@file
     environment:
       - TIMEOUT="600"
       - GRACEFUL_TIMEOUT="600"
