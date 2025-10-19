@@ -8,6 +8,9 @@ uvicorn main:app --reload
 
 ## Run in production
 
+Note that this requires to have the [mazerfaker_proxy](https://github.com/macsimbodnar/mazerfaker_proxy) running.
+It will handle https and reverse-proxy
+
 ```bash
 # Start
 docker compose up --build -d
